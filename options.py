@@ -282,6 +282,7 @@ class OptionsHandler():
         # parse args
         if not ignore_cl_args:
             cl_args = self.parser.parse_args()
+            self.cl_args = cl_args
 
         # load config file
         if config_filepaths is not None:
