@@ -22,12 +22,13 @@ from scipy.spatial.transform import Rotation
 
 from typing import Dict, Any
 
+
 def log_rerun(
-        entity_path:str,
-        cur_data:Dict[str, Any],
-        depth_pred:torch.Tensor,
-        scene_trimesh_mesh:trimesh.Trimesh
-    ) -> None:
+    entity_path: str,
+    cur_data: Dict[str, Any],
+    depth_pred: torch.Tensor,
+    scene_trimesh_mesh: trimesh.Trimesh,
+) -> None:
     """
     Logs camera intri/extri, depth, rgb, and mesh to rerun.
     """
@@ -40,31 +41,33 @@ def log_rerun(
     K_33 = K_44[:3, :3]
 
     rr.log_pinhole(
-        f"{entity_path}/camera/image", 
+        f"{entity_path}/camera/image",
         child_from_parent=K_33,
-        width=depth_pred.shape[-1], height=depth_pred.shape[-2])
-    
-    rr.log_rigid3(
-        f"{entity_path}/camera",
-        parent_from_child=cam_to_world
+        width=depth_pred.shape[-1],
+        height=depth_pred.shape[-2],
     )
+
+    rr.log_rigid3(f"{entity_path}/camera", parent_from_child=cam_to_world, xyz="RDF")
 
     # Depth logging
     our_depth_3hw = depth_pred.squeeze(0)
     our_depth_hw3 = our_depth_3hw.permute(1, 2, 0)
     height, width = our_depth_hw3.shape[:2]
-    rr.log_depth_image(f"{entity_path}/camera/image/depth", our_depth_hw3.cpu().detach().numpy())
+    rr.log_depth_image(
+        f"{entity_path}/camera/image/depth", our_depth_hw3.cpu().detach().numpy()
+    )
 
     # Image logging
-    color_frame_b3hw = (cur_data["high_res_color_b3hw"]
-                   if "high_res_color_b3hw" in cur_data
-                   else cur_data["image_b3hw"])
+    color_frame_b3hw = (
+        cur_data["high_res_color_b3hw"]
+        if "high_res_color_b3hw" in cur_data
+        else cur_data["image_b3hw"]
+    )
     color_frame_3hw = color_frame_b3hw.squeeze(0)
     main_color_3hw = reverse_imagenet_normalize(color_frame_3hw)
     pil_image = Image.fromarray(
-                        np.uint8(main_color_3hw.permute(1,2,0
-                                ).cpu().detach().numpy() * 255)
-                    )
+        np.uint8(main_color_3hw.permute(1, 2, 0).cpu().detach().numpy() * 255)
+    )
     pil_image = pil_image.resize((width, height))
     rr.log_image(f"{entity_path}/camera/image/rgb", pil_image)
 
@@ -149,6 +152,8 @@ def main(opts):
 
     with torch.inference_mode():
         for scan in tqdm(scans):
+            entity_path = f"{scan}/world"
+            rr.log_view_coordinates(entity_path, up="+Z", timeless=True)
             Path(os.path.join(incremental_mesh_output_dir, scan)).mkdir(
                 parents=True, exist_ok=True
             )
@@ -309,13 +314,11 @@ def main(opts):
                     else:
                         scene_trimesh_mesh = fuser.get_mesh(convert_to_trimesh=True)
 
-                entity_path = f"{scan}/world"
                 rr.set_time_sequence("frame", int(batch_ind))
                 log_rerun(entity_path, cur_data, depth_pred, scene_trimesh_mesh)
 
             del dataloader
             del dataset
-            break
 
 
 if __name__ == "__main__":
