@@ -14,48 +14,107 @@ import options
 from tools import fusers_helper
 from utils.dataset_utils import get_dataset
 from utils.generic_utils import to_gpu
+from utils.geometry_utils import NormalGenerator
+
 
 import modules.cost_volume as cost_volume
 import rerun as rr
-from utils.visualization_utils import reverse_imagenet_normalize
+from utils.visualization_utils import reverse_imagenet_normalize, colormap_image
 from scipy.spatial.transform import Rotation
 
+
 from typing import Dict, Any
+
+# depth prediction normals computer
+PRED_FORMAT_SIZE = [192, 256]
+compute_normals = NormalGenerator(PRED_FORMAT_SIZE[0], PRED_FORMAT_SIZE[1]).cuda()
+
+
+def log_source_data(src_entity_path: str, src_data: Dict[str, Any]) -> None:
+    src_images_k3hw = reverse_imagenet_normalize(
+        torch.tensor(src_data["image_b3hw"][0].cuda())
+    )
+    num_src_cameras = src_data["world_T_cam_b44"][0].shape[0]
+    for src_idx in range(num_src_cameras):
+        src_cam_path = f"{src_entity_path}/{src_idx}"
+        world_T_cam_44 = src_data["world_T_cam_b44"][0][src_idx].squeeze().cpu().numpy()
+        K_44 = src_data["K_s0_b44"][0][src_idx].squeeze().cpu().numpy()
+        log_camera(src_cam_path, world_T_cam_44, K_44)
+        log_image(src_cam_path, src_images_k3hw[src_idx], denormalize=False)
+
+
+def log_camera(
+    entity_path: str, world_T_cam_44: torch.Tensor, K_44: torch.Tensor
+) -> None:
+    assert world_T_cam_44.shape == (4, 4)
+    assert K_44.shape == (4, 4)
+    # Convert and log camera parameters
+    Rot, trans = world_T_cam_44[:3, :3], world_T_cam_44[:3, 3]
+    cam_to_world = (trans, Rotation.from_matrix(Rot).as_quat())
+    K_33 = K_44[:3, :3]
+
+    rr.log_pinhole(
+        f"{entity_path}/image",
+        child_from_parent=K_33,
+        width=PRED_FORMAT_SIZE[1],
+        height=PRED_FORMAT_SIZE[0],
+    )
+
+    rr.log_rigid3(entity_path, parent_from_child=cam_to_world, xyz="RDF")
+
+
+def log_image(
+    entity_path: str, color_frame_b3hw: torch.Tensor, denormalize=True
+) -> None:
+    # Image logging
+    color_frame_3hw = color_frame_b3hw.squeeze(0)
+    if denormalize:
+        main_color_3hw = reverse_imagenet_normalize(color_frame_3hw)
+    else:
+        main_color_3hw = color_frame_3hw
+    pil_image = Image.fromarray(
+        np.uint8(main_color_3hw.permute(1, 2, 0).cpu().detach().numpy() * 255)
+    )
+    pil_image = pil_image.resize((PRED_FORMAT_SIZE[1], PRED_FORMAT_SIZE[0]))
+    rr.log_image(f"{entity_path}/image/rgb", pil_image)
 
 
 def log_rerun(
     entity_path: str,
     cur_data: Dict[str, Any],
-    depth_pred: torch.Tensor,
+    src_data: Dict[str, Any],
+    outputs: Dict[str, Any],
     scene_trimesh_mesh: trimesh.Trimesh,
+    should_log_source_cams: bool = True,
 ) -> None:
     """
     Logs camera intri/extri, depth, rgb, and mesh to rerun.
     """
+    curr_entity_path = f"{entity_path}/current_cam"
+    src_entity_path = f"{entity_path}/source_cam"
+    if should_log_source_cams:
+        log_source_data(src_entity_path, src_data)
 
-    # Convert and log camera parameters
     world_T_cam_44 = cur_data["world_T_cam_b44"].squeeze().cpu().numpy()
-    Rot, trans = world_T_cam_44[:3, :3], world_T_cam_44[:3, 3]
-    cam_to_world = (trans, Rotation.from_matrix(Rot).as_quat())
     K_44 = cur_data["K_s0_b44"].squeeze().cpu().numpy()
-    K_33 = K_44[:3, :3]
-
-    rr.log_pinhole(
-        f"{entity_path}/camera/image",
-        child_from_parent=K_33,
-        width=depth_pred.shape[-1],
-        height=depth_pred.shape[-2],
-    )
-
-    rr.log_rigid3(f"{entity_path}/camera", parent_from_child=cam_to_world, xyz="RDF")
+    log_camera(curr_entity_path, world_T_cam_44, K_44)
 
     # Depth logging
+    depth_pred = outputs["depth_pred_s0_b1hw"]
     our_depth_3hw = depth_pred.squeeze(0)
     our_depth_hw3 = our_depth_3hw.permute(1, 2, 0)
-    height, width = our_depth_hw3.shape[:2]
     rr.log_depth_image(
-        f"{entity_path}/camera/image/depth", our_depth_hw3.cpu().detach().numpy()
+        f"{curr_entity_path}/image/depth", our_depth_hw3.cpu().detach().numpy()
     )
+
+    # Normal logging
+    invK_s0_b44 = cur_data["invK_s0_b44"].cuda()
+    normals_b3hw = compute_normals(depth_pred, invK_s0_b44)
+    our_normals_3hw = 0.5 * (1 + normals_b3hw).squeeze(0)
+    pil_normal = Image.fromarray(
+        np.uint8(our_normals_3hw.permute(1, 2, 0).cpu().detach().numpy() * 255)
+    )
+    rr.log_image(f"{curr_entity_path}/image/normal", pil_normal)
 
     # Image logging
     color_frame_b3hw = (
@@ -68,8 +127,21 @@ def log_rerun(
     pil_image = Image.fromarray(
         np.uint8(main_color_3hw.permute(1, 2, 0).cpu().detach().numpy() * 255)
     )
-    pil_image = pil_image.resize((width, height))
-    rr.log_image(f"{entity_path}/camera/image/rgb", pil_image)
+    pil_image = pil_image.resize((PRED_FORMAT_SIZE[1], PRED_FORMAT_SIZE[0]))
+    rr.log_image(f"{curr_entity_path}/image/rgb", pil_image)
+
+    # lowest cost guess from the cost volume
+    lowest_cost_bhw = outputs["lowest_cost_bhw"]
+    lowest_cost_3hw = colormap_image(
+        lowest_cost_bhw,
+        vmin=0,
+        vmax=5,
+    )
+    pil_cost = Image.fromarray(
+        np.uint8(lowest_cost_3hw.permute(1, 2, 0).cpu().detach().numpy() * 255)
+    )
+    pil_cost = pil_cost.resize((PRED_FORMAT_SIZE[1], PRED_FORMAT_SIZE[0]))
+    rr.log_image(f"lowest_cost_volume", pil_cost)
 
     # Fused mesh logging
     rr.log_mesh(
@@ -315,10 +387,11 @@ def main(opts):
                         scene_trimesh_mesh = fuser.get_mesh(convert_to_trimesh=True)
 
                 rr.set_time_sequence("frame", int(batch_ind))
-                log_rerun(entity_path, cur_data, depth_pred, scene_trimesh_mesh)
+                log_rerun(entity_path, cur_data, src_data, outputs, scene_trimesh_mesh)
 
             del dataloader
             del dataset
+            break
 
 
 if __name__ == "__main__":
