@@ -120,7 +120,21 @@ CUDA_VISIBLE_DEVICES=0 python test.py --name HERO_MODEL \
             --fuse_color \
             --dump_depth_visualization;
 ```
+https://github.com/nianticlabs/simplerecon/assets/25287427/1d32d2b2-61fe-4007-ac86-39134a0af2e5
 
+for visualizing with rerun use the following command
+```
+CUDA_VISIBLE_DEVICES=0 python rerun_visualize_live_meshing.py \
+            --name HERO_MODEL
+            --output_base_path OUTPUT_PATH
+            --config_file configs/models/hero_model.yaml
+            --load_weights_from_checkpoint weights/hero_model.ckpt
+            --data_config configs/data/vdr_dense.yaml
+            --num_workers 8
+            --run_fusion
+            --depth_fuser open3d
+            --fuse_color;
+```
 This will output meshes, quick depth viz, and socres when benchmarked against LiDAR depth under `OUTPUT_PATH`. 
 
 This command uses `vdr_dense.yaml` which will generate depths for every frame and fuse them into a mesh. In the paper we report scores with fused keyframes instead, and you can run those using `vdr_default.yaml`. You can also use `dense_offline` tuples by instead using `vdr_dense_offline.yaml`.
