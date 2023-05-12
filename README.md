@@ -1,6 +1,9 @@
 # SimpleRecon: 3D Reconstruction Without 3D Convolutions
 
-This is the reference PyTorch implementation for training and testing MVS depth estimation models using the method described in
+This is the reference PyTorch implementation for training and testing MVS depth estimation models which has been modified  to use [Rerun](https://github.com/rerun-io/rerun) for visualization.
+
+https://github.com/nianticlabs/simplerecon/assets/25287427/1d32d2b2-61fe-4007-ac86-39134a0af2e5
+
 
 > **SimpleRecon: 3D Reconstruction Without 3D Convolutions**
 >
@@ -120,7 +123,6 @@ CUDA_VISIBLE_DEVICES=0 python test.py --name HERO_MODEL \
             --fuse_color \
             --dump_depth_visualization;
 ```
-https://github.com/nianticlabs/simplerecon/assets/25287427/1d32d2b2-61fe-4007-ac86-39134a0af2e5
 
 for visualizing with rerun use the following command
 ```
