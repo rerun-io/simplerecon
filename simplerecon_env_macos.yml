@@ -1,0 +1,30 @@
+name: simplerecon
+channels:
+  - default
+  - pytorch
+  - conda-forge
+dependencies:
+  - python=3.9.7
+  - pytorch
+  - torchvision
+  - pytorch-lightning=1.5.4 # training utils
+  - pillow # image op
+  - tensorboard # logging
+  - matplotlib # plotting
+  - pip
+  - numpy>=1.23
+  - pip:
+    - kornia==0.6.7 # gradients
+    - antialiased-cnns # anti aliased resnet
+    - efficientnet_pytorch
+    - timm # efficent
+    - trimesh # mesh loading/storage, and mesh generation
+    - transforms3d # for NeuralRecon's arkit
+    - einops # batching one liners
+    - moviepy # storing videos
+    - pyrender # rendering meshes
+    - open3d==0.14.1 # mesh fusion
+    - scipy # transformations and a few others
+    - setuptools==59.5.0 # fix for tensorboard
+    - https://github.com/alsuren/scikit-image/archive/single_mesh.zip # single mesh exporting for measure.marching_cubes
+    - rerun-sdk==0.5.1 # for visualizing using rerun
