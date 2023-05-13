@@ -3,6 +3,7 @@ import os
 import pickle
 from pathlib import Path
 
+from accelerate import Accelerator
 import kornia
 import torch
 import torchvision.transforms.functional as TF
@@ -10,6 +11,9 @@ from PIL import Image
 from torch import nn
 
 logger = logging.getLogger(__name__)
+
+accelerator = Accelerator()
+device = accelerator.device
 
 
 def copy_code_state(path):
@@ -141,7 +145,7 @@ def to_gpu(input_dict, key_ignores=[]):
     """
     for k, v in input_dict.items():
         if k not in key_ignores:
-            input_dict[k] = v.cuda().float()
+            input_dict[k] = v.to(device).float()
     return input_dict
 
 def imagenet_normalize(image):

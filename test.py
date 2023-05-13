@@ -124,7 +124,7 @@ from experiment_modules.depth_model import DepthModel
 import options
 from tools import fusers_helper
 from utils.dataset_utils import get_dataset
-from utils.generic_utils import to_gpu, cache_model_outputs
+from utils.generic_utils import to_gpu, cache_model_outputs, device
 from utils.metrics_utils import ResultsAverager, compute_depth_metrics_batched
 from utils.visualization_utils import quick_viz_export
 
@@ -202,10 +202,7 @@ def main(opts):
             isinstance(model.cost_volume, cost_volume.FeatureVolumeManager)):
         model.cost_volume = model.cost_volume.to_fast()
 
-    if platform.system() == "Darwin":
-        model = model.eval()
-    else:
-        model = model.cuda().eval()
+    model = model.to(device).eval()
 
     # setting up overall result averagers
     all_frame_metrics = None
