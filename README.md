@@ -127,14 +127,14 @@ CUDA_VISIBLE_DEVICES=0 python test.py --name HERO_MODEL \
 for visualizing with rerun use the following command
 ```
 CUDA_VISIBLE_DEVICES=0 python rerun_visualize_live_meshing.py \
-            --name HERO_MODEL
-            --output_base_path OUTPUT_PATH
-            --config_file configs/models/hero_model.yaml
-            --load_weights_from_checkpoint weights/hero_model.ckpt
-            --data_config configs/data/vdr_dense.yaml
-            --num_workers 8
-            --run_fusion
-            --depth_fuser open3d
+            --name HERO_MODEL \
+            --output_base_path OUTPUT_PATH \
+            --config_file configs/models/hero_model.yaml \
+            --load_weights_from_checkpoint weights/hero_model.ckpt \
+            --data_config configs/data/vdr_dense.yaml \
+            --num_workers 8 \
+            --run_fusion \
+            --depth_fuser open3d \
             --fuse_color;
 ```
 This will output meshes, quick depth viz, and socres when benchmarked against LiDAR depth under `OUTPUT_PATH`. 
