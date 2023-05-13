@@ -13,7 +13,7 @@ from experiment_modules.depth_model import DepthModel
 import options
 from tools import fusers_helper
 from utils.dataset_utils import get_dataset
-from utils.generic_utils import to_gpu
+from utils.generic_utils import to_gpu, device
 from utils.geometry_utils import NormalGenerator
 
 
@@ -27,12 +27,12 @@ from typing import Dict, Any
 
 # depth prediction normals computer
 PRED_FORMAT_SIZE = [192, 256]
-compute_normals = NormalGenerator(PRED_FORMAT_SIZE[0], PRED_FORMAT_SIZE[1]).cuda()
+compute_normals = NormalGenerator(PRED_FORMAT_SIZE[0], PRED_FORMAT_SIZE[1]).to(device)
 
 
 def log_source_data(src_entity_path: str, src_data: Dict[str, Any]) -> None:
     src_images_k3hw = reverse_imagenet_normalize(
-        torch.tensor(src_data["image_b3hw"][0].cuda())
+        torch.tensor(src_data["image_b3hw"][0].to(device))
     )
     num_src_cameras = src_data["world_T_cam_b44"][0].shape[0]
     for src_idx in range(num_src_cameras):
@@ -108,7 +108,7 @@ def log_rerun(
     )
 
     # Normal logging
-    invK_s0_b44 = cur_data["invK_s0_b44"].cuda()
+    invK_s0_b44 = cur_data["invK_s0_b44"].to(device)
     normals_b3hw = compute_normals(depth_pred, invK_s0_b44)
     our_normals_3hw = 0.5 * (1 + normals_b3hw).squeeze(0)
     pil_normal = Image.fromarray(
@@ -169,7 +169,7 @@ def main(opts):
     ):
         model.cost_volume = model.cost_volume.to_fast()
 
-    model = model.cuda().eval()
+    model = model.to(device).eval()
 
     # path where results for this model, dataset, and tuple type are.
     results_path = os.path.join(
@@ -354,7 +354,7 @@ def main(opts):
 
                     if opts.mask_pred_depth:
                         overall_mask_b1hw = (
-                            outputs["overall_mask_bhw"].cuda().unsqueeze(1).float()
+                            outputs["overall_mask_bhw"].to(device).unsqueeze(1).float()
                         )
                         overall_mask_b1hw = F.interpolate(
                             overall_mask_b1hw, size=(192, 256), mode="nearest"
