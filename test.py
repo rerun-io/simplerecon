@@ -110,6 +110,11 @@
 
 import os
 from pathlib import Path
+import platform
+
+# cargo-cult from  https://github.com/rerun-io/rerun/tree/main/examples/python/stable_diffusion/main.py
+if platform.system() == "Darwin":
+    os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 
 import torch
 import torch.nn.functional as F
@@ -197,7 +202,10 @@ def main(opts):
             isinstance(model.cost_volume, cost_volume.FeatureVolumeManager)):
         model.cost_volume = model.cost_volume.to_fast()
 
-    model = model.cuda().eval()
+    if platform.system() == "Darwin":
+        model = model.eval()
+    else:
+        model = model.cuda().eval()
 
     # setting up overall result averagers
     all_frame_metrics = None
@@ -208,8 +216,9 @@ def main(opts):
 
 
     with torch.inference_mode():
-        start_time = torch.cuda.Event(enable_timing=True)
-        end_time = torch.cuda.Event(enable_timing=True)
+        if platform.system() != "Darwin":
+            start_time = torch.cuda.Event(enable_timing=True)
+            end_time = torch.cuda.Event(enable_timing=True)
 
         # loop over scans
         for scan in tqdm(scans):
@@ -262,8 +271,9 @@ def main(opts):
 
                 depth_gt = cur_data["full_res_depth_b1hw"]
 
-                # run to get output, also measure time
-                start_time.record()
+                if platform.system() != "Darwin":
+                    # run to get output, also measure time
+                    start_time.record()
                 # use unbatched (looping) matching encoder image forward passes 
                 # for numerically stable testing. If opts.fast_cost_volume, then 
                 # batch.
@@ -274,10 +284,12 @@ def main(opts):
                                 ), 
                                 return_mask=True,
                             )
-                end_time.record()
-                torch.cuda.synchronize()
+                if platform.system() != "Darwin":
+                    end_time.record()
+                    torch.cuda.synchronize()
 
-                elapsed_model_time = start_time.elapsed_time(end_time)
+                if platform.system() != "Darwin":
+                    elapsed_model_time = start_time.elapsed_time(end_time)
 
                 upsampled_depth_pred_b1hw = F.interpolate(
                                 outputs["depth_pred_s0_b1hw"], 
@@ -309,9 +321,10 @@ def main(opts):
                         for key in list(metrics_b_dict.keys()):
                             element_metrics[key] = metrics_b_dict[key][element_index]
                         
-                        # get per frame time in the batch
-                        element_metrics["model_time"] = (elapsed_model_time /
-                                                            depth_gt.shape[0])
+                        if platform.system() != "Darwin":
+                            # get per frame time in the batch
+                            element_metrics["model_time"] = (elapsed_model_time /
+                                                                depth_gt.shape[0])
 
                         # both this scene and all frame averagers
                         scene_frame_metrics.update_results(element_metrics)
