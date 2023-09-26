@@ -16,4 +16,5 @@ tensorboard
 matplotlib
 pytorch-lightning=1.5.4
 scikit-image @ https://github.com/JamieWatson683/scikit-image/archive/single_mesh.zip
-rerun-sdk==0.5.1
+-f https://build.rerun.io/commit/b814745/wheels 
+rerun-sdk==0.9.0a4
