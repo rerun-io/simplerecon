@@ -61,7 +61,7 @@ def log_camera(
         )
     )
 
-    rr.log(entity_path, rr.TranslationAndMat3x3(trans, Rot))
+    rr.log(entity_path, rr.Transform3D(translation=trans, mat3x3=Rot))
 
 
 def log_image(
@@ -150,7 +150,7 @@ def log_rerun(
         f"{entity_path}/mesh",
         rr.Mesh3D(
             vertex_positions=scene_trimesh_mesh.vertices,
-            mesh_properties=MeshProperties(vertex_indices=scene_trimesh_mesh.faces),
+            indices=scene_trimesh_mesh.faces,
             vertex_colors=scene_trimesh_mesh.visual.vertex_colors,
         )
     )

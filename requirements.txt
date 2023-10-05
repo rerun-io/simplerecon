@@ -14,7 +14,6 @@ scipy
 Pillow
 tensorboard
 matplotlib
-pytorch-lightning=1.5.4
+pytorch-lightning==1.5.4
 scikit-image @ https://github.com/JamieWatson683/scikit-image/archive/single_mesh.zip
--f https://build.rerun.io/commit/b814745/wheels 
-rerun-sdk==0.9.0a4
+rerun-sdk>=0.9.0
