@@ -19,8 +19,8 @@ from utils.geometry_utils import NormalGenerator
 
 import modules.cost_volume as cost_volume
 import rerun as rr
+from rerun.components import MeshProperties
 from utils.visualization_utils import reverse_imagenet_normalize, colormap_image
-from scipy.spatial.transform import Rotation
 
 
 from typing import Dict, Any
@@ -50,17 +50,18 @@ def log_camera(
     assert K_44.shape == (4, 4)
     # Convert and log camera parameters
     Rot, trans = world_T_cam_44[:3, :3], world_T_cam_44[:3, 3]
-    cam_to_world = (trans, Rotation.from_matrix(Rot).as_quat())
     K_33 = K_44[:3, :3]
 
-    rr.log_pinhole(
+    rr.log(
         f"{entity_path}/image",
-        child_from_parent=K_33,
-        width=PRED_FORMAT_SIZE[1],
-        height=PRED_FORMAT_SIZE[0],
+        rr.Pinhole(
+            image_from_camera=K_33,
+            width=PRED_FORMAT_SIZE[1],
+            height=PRED_FORMAT_SIZE[0],
+        )
     )
 
-    rr.log_rigid3(entity_path, parent_from_child=cam_to_world, xyz="RDF")
+    rr.log(entity_path, rr.Transform3D(translation=trans, mat3x3=Rot))
 
 
 def log_image(
@@ -76,7 +77,7 @@ def log_image(
         np.uint8(main_color_3hw.permute(1, 2, 0).cpu().detach().numpy() * 255)
     )
     pil_image = pil_image.resize((PRED_FORMAT_SIZE[1], PRED_FORMAT_SIZE[0]))
-    rr.log_image(f"{entity_path}/image/rgb", pil_image)
+    rr.log(f"{entity_path}/image/rgb", rr.Image(pil_image))
 
 
 def log_rerun(
@@ -103,8 +104,9 @@ def log_rerun(
     depth_pred = outputs["depth_pred_s0_b1hw"]
     our_depth_3hw = depth_pred.squeeze(0)
     our_depth_hw3 = our_depth_3hw.permute(1, 2, 0)
-    rr.log_depth_image(
-        f"{curr_entity_path}/image/depth", our_depth_hw3.cpu().detach().numpy()
+    rr.log(
+        f"{curr_entity_path}/image/depth",
+        rr.DepthImage(our_depth_hw3.numpy(force=True))
     )
 
     # Normal logging
@@ -114,7 +116,7 @@ def log_rerun(
     pil_normal = Image.fromarray(
         np.uint8(our_normals_3hw.permute(1, 2, 0).cpu().detach().numpy() * 255)
     )
-    rr.log_image(f"{curr_entity_path}/image/normal", pil_normal)
+    rr.log(f"{curr_entity_path}/image/normal", rr.Image(pil_normal))
 
     # Image logging
     color_frame_b3hw = (
@@ -128,7 +130,7 @@ def log_rerun(
         np.uint8(main_color_3hw.permute(1, 2, 0).cpu().detach().numpy() * 255)
     )
     pil_image = pil_image.resize((PRED_FORMAT_SIZE[1], PRED_FORMAT_SIZE[0]))
-    rr.log_image(f"{curr_entity_path}/image/rgb", pil_image)
+    rr.log(f"{curr_entity_path}/image/rgb", rr.Image(pil_image))
 
     # lowest cost guess from the cost volume
     lowest_cost_bhw = outputs["lowest_cost_bhw"]
@@ -141,14 +143,16 @@ def log_rerun(
         np.uint8(lowest_cost_3hw.permute(1, 2, 0).cpu().detach().numpy() * 255)
     )
     pil_cost = pil_cost.resize((PRED_FORMAT_SIZE[1], PRED_FORMAT_SIZE[0]))
-    rr.log_image(f"lowest_cost_volume", pil_cost)
+    rr.log("lowest_cost_volume", rr.Image(pil_cost))
 
     # Fused mesh logging
-    rr.log_mesh(
+    rr.log(
         f"{entity_path}/mesh",
-        positions=scene_trimesh_mesh.vertices,
-        indices=scene_trimesh_mesh.faces,
-        vertex_colors=scene_trimesh_mesh.visual.vertex_colors,
+        rr.Mesh3D(
+            vertex_positions=scene_trimesh_mesh.vertices,
+            indices=scene_trimesh_mesh.faces,
+            vertex_colors=scene_trimesh_mesh.visual.vertex_colors,
+        )
     )
 
 
@@ -190,42 +194,42 @@ def main(opts):
     )
 
     Path(incremental_mesh_output_dir).mkdir(parents=True, exist_ok=True)
-    print(f"".center(80, "#"))
+    print("".center(80, "#"))
     print(f" Running Fusion! Using {opts.depth_fuser} ".center(80, "#"))
     print(
         f"Incremental Mesh Output directory:"
         f"\n{incremental_mesh_output_dir} ".center(80, "#")
     )
     if opts.use_precomputed_partial_meshes:
-        print(f" Loading precomputed incremental meshes. ".center(80, "#"))
-    print(f"".center(80, "#"))
+        print(" Loading precomputed incremental meshes. ".center(80, "#"))
+    print("".center(80, "#"))
     print("")
 
     # path where cached depth maps are
     depth_output_dir = os.path.join(results_path, "depths")
     Path(os.path.join(depth_output_dir)).mkdir(parents=True, exist_ok=True)
-    print(f"".center(80, "#"))
-    print(f" Reading cached depths if they exist. ".center(80, "#"))
+    print("".center(80, "#"))
+    print(" Reading cached depths if they exist. ".center(80, "#"))
     print(f"Directory:\n{depth_output_dir} ".center(80, "#"))
     if opts.cache_depths:
-        print(f" Caching depths if we need to compute them. ".center(80, "#"))
-    print(f"".center(80, "#"))
+        print(" Caching depths if we need to compute them. ".center(80, "#"))
+    print("".center(80, "#"))
     print("")
 
     video_output_dir = os.path.join(
         results_path, "viz", "reconstruction_videos", mesh_output_folder_name
     )
     Path(os.path.join(video_output_dir)).mkdir(parents=True, exist_ok=True)
-    print(f"".center(80, "#"))
-    print(f" Outputting videos. ".center(80, "#"))
+    print("".center(80, "#"))
+    print(" Outputting videos. ".center(80, "#"))
     print(f"Video Output directory:\n{video_output_dir} ".center(80, "#"))
-    print(f"".center(80, "#"))
+    print("".center(80, "#"))
     print("")
 
     with torch.inference_mode():
         for scan in tqdm(scans):
             entity_path = f"{scan}/world"
-            rr.log_view_coordinates(entity_path, up="+Z", timeless=True)
+            rr.log(entity_path, rr.ViewCoordinates.RIGHT_HAND_Z_UP, timeless=True)
             Path(os.path.join(incremental_mesh_output_dir, scan)).mkdir(
                 parents=True, exist_ok=True
             )

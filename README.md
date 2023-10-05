@@ -64,11 +64,21 @@ SimpleRecon takes as input posed RGB images, and outputs a depth map for a targe
 
 ## ⚙️ Setup
 
+### Conda
 Assuming a fresh [Anaconda](https://www.anaconda.com/download/) distribution, you can install dependencies with:
 ```shell
 conda env create -f simplerecon_env.yml
 ```
 We ran our experiments with PyTorch 1.10, CUDA 11.3, Python 3.9.7 and Debian GNU/Linux 10.
+
+### virtualenv + pip
+(Last tested with Python 3.10.9, torch
+Create a virtualenv and install dependencies.
+```
+python3 -m venv env
+source env/bin/activate
+pip install -r requirements.txt
+```
 
 ## 📦 Models
 
@@ -114,29 +124,31 @@ CUDA_VISIBLE_DEVICES=0 python test.py --name HERO_MODEL \
             --output_base_path OUTPUT_PATH \
             --config_file configs/models/hero_model.yaml \
             --load_weights_from_checkpoint weights/hero_model.ckpt \
-            --data_config configs/data/vdr_dense.yaml \
+            --data_config_file configs/data/vdr_dense.yaml \
             --num_workers 8 \
             --batch_size 2 \
             --fast_cost_volume \
             --run_fusion \
             --depth_fuser open3d \
             --fuse_color \
-            --dump_depth_visualization;
+            --dump_depth_visualization
 ```
 
 for visualizing with rerun use the following command
-```
+
+```bash
 CUDA_VISIBLE_DEVICES=0 python rerun_visualize_live_meshing.py \
-            --name HERO_MODEL
-            --output_base_path OUTPUT_PATH
-            --config_file configs/models/hero_model.yaml
-            --load_weights_from_checkpoint weights/hero_model.ckpt
-            --data_config configs/data/vdr_dense.yaml
-            --num_workers 8
-            --run_fusion
-            --depth_fuser open3d
-            --fuse_color;
+            --name HERO_MODEL \
+            --output_base_path OUTPUT_PATH \
+            --config_file configs/models/hero_model.yaml \
+            --load_weights_from_checkpoint weights/hero_model.ckpt \
+            --data_config_file configs/data/vdr_dense.yaml \
+            --num_workers 8 \
+            --run_fusion \
+            --depth_fuser open3d \
+            --fuse_color
 ```
+
 This will output meshes, quick depth viz, and socres when benchmarked against LiDAR depth under `OUTPUT_PATH`. 
 
 This command uses `vdr_dense.yaml` which will generate depths for every frame and fuse them into a mesh. In the paper we report scores with fused keyframes instead, and you can run those using `vdr_default.yaml`. You can also use `dense_offline` tuples by instead using `vdr_dense_offline.yaml`.
