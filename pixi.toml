@@ -1,0 +1,57 @@
+[project]
+name = "simplerecon"
+version = "0.1.0"
+description = "Add a short description here"
+authors = ["Pablo Vela <pablovela5620@gmail.com>"]
+channels = ["nvidia", "pytorch", "conda-forge"]
+platforms = ["linux-64", "osx-arm64"]
+
+[tasks]
+post-install = "python -m pip install -r pixi-requirements.txt"
+
+[dependencies]
+python = "3.10.*"
+pytorch = "1.13.1.*"
+torchvision = "0.14.1.*"
+kornia = "0.6.7.*"
+timm = ">=0.9.12,<0.10"
+trimesh = ">=4.0.5,<4.1"
+transforms3d = ">=0.4.1,<0.5"
+einops = ">=0.7.0,<0.8"
+pyrender = ">=0.1.45,<0.2"
+scipy = ">=1.11.4,<1.12"
+Pillow = ">=9.4.0,<9.5"
+tensorboard = ">=2.15.1,<2.16"
+matplotlib = ">=3.8.2,<3.9"
+rerun-sdk = ">=0.10.1,<0.11"
+pytorch-lightning = "1.5.4.*"
+pip = ">=23.3.1,<23.4"
+moviepy = ">=1.0.3,<1.1"
+
+[target.linux-64.dependencies]
+pytorch-cuda = "11.7.*"
+
+[target.osx-arm64.tasks]
+# OMP_NUM_THREADS required to work on mac https://github.com/isl-org/Open3D/issues/6196
+vdr = """OMP_NUM_THREADS=1 python rerun_visualize_live_meshing.py \
+            --name HERO_MODEL \
+            --output_base_path OUTPUT_PATH \
+            --config_file configs/models/hero_model.yaml \
+            --load_weights_from_checkpoint weights/hero_model.ckpt \
+            --data_config_file configs/data/vdr_dense.yaml \
+            --num_workers 8 \
+            --run_fusion \
+            --depth_fuser open3d \
+            --fuse_color"""
+
+[target.linux-64.tasks]
+vdr = """CUDA_VISIBLE_DEVICES=0 python rerun_visualize_live_meshing.py \
+            --name HERO_MODEL \
+            --output_base_path OUTPUT_PATH \
+            --config_file configs/models/hero_model.yaml \
+            --load_weights_from_checkpoint weights/hero_model.ckpt \
+            --data_config_file configs/data/vdr_dense.yaml \
+            --num_workers 8 \
+            --run_fusion \
+            --depth_fuser open3d \
+            --fuse_color"""

@@ -6,3 +6,7 @@ logs
 models/*.ckpt
 weights/*.ckpt
 **__pycache__**
+# pixi environments
+.pixi
+data/*
+OUTPUT_PATH/*

@@ -1,0 +1,3 @@
+open3d==0.17
+efficientnet_pytorch
+antialiased-cnns
