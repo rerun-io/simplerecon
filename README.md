@@ -4,6 +4,19 @@ This is the reference PyTorch implementation for training and testing MVS depth 
 
 https://github.com/nianticlabs/simplerecon/assets/25287427/1d32d2b2-61fe-4007-ac86-39134a0af2e5
 
+## Run using `pixi`
+The easiest way to get started is to install [pixi](https://prefix.dev/docs/pixi/overview).
+
+The pixi environment described in `pixi.toml` contains all of the dependencies, including the rerun viewer,
+allowing you to setup your development environment and download demo data
+
+This will work with Linux and Mac
+
+Run the following in order
+1. `pixi run post-install`
+2. `pixi run download-data`
+3. `pixi run vdr`
+
 
 > **SimpleRecon: 3D Reconstruction Without 3D Convolutions**
 >
