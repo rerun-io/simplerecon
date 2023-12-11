@@ -2,3 +2,4 @@ open3d==0.17
 efficientnet_pytorch
 antialiased-cnns
 scikit-image @ https://github.com/JamieWatson683/scikit-image/archive/single_mesh.zip
+moviepy

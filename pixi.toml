@@ -34,7 +34,6 @@ matplotlib = ">=3.8.2,<3.9"
 rerun-sdk = ">=0.10.1,<0.11"
 pytorch-lightning = "1.5.4.*"
 pip = ">=23.3.1,<23.4"
-moviepy = ">=1.0.3,<1.1"
 
 [target.linux-64.dependencies]
 pytorch-cuda = "11.7.*"
