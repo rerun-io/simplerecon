@@ -7,6 +7,14 @@ channels = ["nvidia", "pytorch", "conda-forge"]
 platforms = ["linux-64", "osx-arm64"]
 
 [tasks]
+download-hero-model = """
+        bash -c '[ ! -f \"weights/hero_model.ckpt\" ] && gdown 1hCuKZjEq-AghrYAmFxJs_4eeixIlP488 -O weights/'
+"""
+download-vdr-data = """
+      bash -c '[ ! -d \"data/vdr\" ] && (gdown 1x-auV7vGCMdu5yZUMPcoP83p77QOuasT -O data/ && unzip data/vdr.zip -d data/) || echo \"Dataset already downloaded.\"'
+"""
+
+download-data = {cmd="pwd", depends_on = ["download-hero-model", "download-vdr-data"]}
 post-install = "python -m pip install -r pixi-requirements.txt"
 
 [dependencies]
@@ -38,7 +46,7 @@ vdr = """OMP_NUM_THREADS=1 python rerun_visualize_live_meshing.py \
             --output_base_path OUTPUT_PATH \
             --config_file configs/models/hero_model.yaml \
             --load_weights_from_checkpoint weights/hero_model.ckpt \
-            --data_config_file configs/data/vdr_dense.yaml \
+            --data_config_file configs/data/vdr_dense_rerun.yaml \
             --num_workers 8 \
             --run_fusion \
             --depth_fuser open3d \
@@ -50,7 +58,7 @@ vdr = """CUDA_VISIBLE_DEVICES=0 python rerun_visualize_live_meshing.py \
             --output_base_path OUTPUT_PATH \
             --config_file configs/models/hero_model.yaml \
             --load_weights_from_checkpoint weights/hero_model.ckpt \
-            --data_config_file configs/data/vdr_dense.yaml \
+            --data_config_file configs/data/vdr_dense_rerun.yaml \
             --num_workers 8 \
             --run_fusion \
             --depth_fuser open3d \
