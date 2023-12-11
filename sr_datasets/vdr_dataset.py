@@ -6,7 +6,7 @@ import os
 import numpy as np
 import torch
 import torch.nn.functional as F
-from datasets.generic_mvs_dataset import GenericMVSDataset
+from sr_datasets.generic_mvs_dataset import GenericMVSDataset
 from torchvision import transforms
 from utils.geometry_utils import rotx
 from utils.generic_utils import read_image_file

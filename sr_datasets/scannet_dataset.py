@@ -3,7 +3,7 @@ import os
 import numpy as np
 import PIL.Image as pil
 import torch
-from datasets.generic_mvs_dataset import GenericMVSDataset
+from sr_datasets.generic_mvs_dataset import GenericMVSDataset
 from torchvision import transforms
 from utils.generic_utils import (readlines, read_image_file)
 

@@ -1,9 +1,9 @@
-from datasets.colmap_dataset import ColmapDataset
-from datasets.arkit_dataset import ARKitDataset
-from datasets.scannet_dataset import ScannetDataset
-from datasets.seven_scenes_dataset import SevenScenesDataset
-from datasets.vdr_dataset import VDRDataset
-from datasets.scanniverse_dataset import ScanniverseDataset
+from sr_datasets.colmap_dataset import ColmapDataset
+from sr_datasets.arkit_dataset import ARKitDataset
+from sr_datasets.scannet_dataset import ScannetDataset
+from sr_datasets.seven_scenes_dataset import SevenScenesDataset
+from sr_datasets.vdr_dataset import VDRDataset
+from sr_datasets.scanniverse_dataset import ScanniverseDataset
 
 def get_dataset(dataset_name, 
                 split_filepath,
