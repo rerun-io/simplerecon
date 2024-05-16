@@ -44,7 +44,7 @@ tensorboard = ">=2.15.1,<2.16"
 timm = "*" # efficent
 transforms3d = "*" # for NeuralRecon's arkit
 trimesh = "*" # mesh loading/storage, and mesh generation
-rerun-sdk = "==0.16.0-rc4"
+rerun-sdk = "==0.16.0"
 
 
 [target.linux-64.dependencies]
