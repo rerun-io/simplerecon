@@ -6,6 +6,11 @@ authors = ["Pablo Vela <pablovela5620@gmail.com>"]
 channels = ["nvidia", "pytorch", "conda-forge"]
 platforms = ["linux-64", "osx-arm64"]
 
+[system-requirements]
+macos = "11.0" # needed for some reason otherwise fails to resolve mediapipe package
+libc = "2.31"
+
+
 [tasks]
 download-hero-model = """
         bash -c '[ ! -f \"weights/hero_model.ckpt\" ] && gdown 1hCuKZjEq-AghrYAmFxJs_4eeixIlP488 -O weights/'
@@ -13,27 +18,34 @@ download-hero-model = """
 download-vdr-data = """
       bash -c '[ ! -d \"data/vdr\" ] && (gdown 1x-auV7vGCMdu5yZUMPcoP83p77QOuasT -O data/ && unzip data/vdr.zip -d data/) || echo \"Dataset already downloaded.\"'
 """
-
 download-data = {cmd="pwd", depends_on = ["download-hero-model", "download-vdr-data"]}
-post-install = "python -m pip install -r pixi-requirements.txt"
 
 [dependencies]
-python = "3.10.*"
+python = "3.9.*"
 pytorch = "1.13.1.*"
-torchvision = "0.14.1.*"
-kornia = "0.6.7.*"
-timm = ">=0.9.12,<0.10"
-trimesh = ">=4.0.5,<4.1"
-transforms3d = ">=0.4.1,<0.5"
-einops = ">=0.7.0,<0.8"
-pyrender = ">=0.1.45,<0.2"
-scipy = ">=1.11.4,<1.12"
-Pillow = ">=9.4.0,<9.5"
-tensorboard = ">=2.15.1,<2.16"
-matplotlib = ">=3.8.2,<3.9"
-rerun-sdk = ">=0.10.1,<0.11"
 pytorch-lightning = "1.5.4.*"
-pip = ">=23.3.1,<23.4"
+scipy = ">=1.11.4,<1.12"
+torchvision = "0.14.1.*"
+
+[pypi-dependencies]
+Pillow = ">=9.4.0,<9.5"
+antialiased-cnns = "*"
+efficientnet_pytorch = "*"
+einops = "*" # batching one liners
+gdown = ">=5.2.0"
+kornia = "==0.6.7" # gradients
+matplotlib = ">=3.8.2,<3.9"
+moviepy = "*"
+open3d = "*" # mesh fusion
+pip = "*"
+pyrender = "*"# rendering meshes
+scikit-image = "*"
+tensorboard = ">=2.15.1,<2.16"
+timm = "*" # efficent
+transforms3d = "*" # for NeuralRecon's arkit
+trimesh = "*" # mesh loading/storage, and mesh generation
+rerun-sdk = "==0.16.0-rc4"
+
 
 [target.linux-64.dependencies]
 pytorch-cuda = "11.7.*"
