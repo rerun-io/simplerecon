@@ -18,7 +18,6 @@ from utils.geometry_utils import NormalGenerator
 
 import modules.cost_volume as cost_volume
 import rerun as rr
-from rerun.components import MeshProperties
 from utils.visualization_utils import reverse_imagenet_normalize, colormap_image
 
 
@@ -160,7 +159,7 @@ def log_rerun(
         f"{entity_path}/mesh",
         rr.Mesh3D(
             vertex_positions=scene_trimesh_mesh.vertices,
-            indices=scene_trimesh_mesh.faces,
+            triangle_indices=scene_trimesh_mesh.faces,
             vertex_colors=scene_trimesh_mesh.visual.vertex_colors,
         ),
     )

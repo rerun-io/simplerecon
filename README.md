@@ -13,9 +13,8 @@ allowing you to setup your development environment and download demo data
 This will work with Linux and Mac
 
 Run the following in order
-1. `pixi run post-install`
-2. `pixi run download-data`
-3. `pixi run vdr`
+1`pixi run download-data`
+2`pixi run vdr`
 
 
 > **SimpleRecon: 3D Reconstruction Without 3D Convolutions**
