@@ -2,7 +2,7 @@ import numpy as np
 import open3d as o3d
 import torch
 import trimesh
-from datasets.scannet_dataset import ScannetDataset
+from sr_datasets.scannet_dataset import ScannetDataset
 from utils.generic_utils import reverse_imagenet_normalize
 
 from tools.tsdf import TSDF, TSDFFuser

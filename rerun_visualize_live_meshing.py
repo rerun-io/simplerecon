@@ -13,13 +13,11 @@ from experiment_modules.depth_model import DepthModel
 import options
 from tools import fusers_helper
 from utils.dataset_utils import get_dataset
-from utils.generic_utils import to_gpu
 from utils.geometry_utils import NormalGenerator
 
 
 import modules.cost_volume as cost_volume
 import rerun as rr
-from rerun.components import MeshProperties
 from utils.visualization_utils import reverse_imagenet_normalize, colormap_image
 
 
@@ -27,12 +25,23 @@ from typing import Dict, Any
 
 # depth prediction normals computer
 PRED_FORMAT_SIZE = [192, 256]
-compute_normals = NormalGenerator(PRED_FORMAT_SIZE[0], PRED_FORMAT_SIZE[1]).cuda()
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+compute_normals = NormalGenerator(PRED_FORMAT_SIZE[0], PRED_FORMAT_SIZE[1]).to(device)
+
+
+def to_device(input_dict, key_ignores=[], device="cuda"):
+    """ " Moves tensors in the input dict to the gpu and ignores tensors/elements
+    as with keys in key_ignores.
+    """
+    for k, v in input_dict.items():
+        if k not in key_ignores:
+            input_dict[k] = v.to(device).float()
+    return input_dict
 
 
 def log_source_data(src_entity_path: str, src_data: Dict[str, Any]) -> None:
     src_images_k3hw = reverse_imagenet_normalize(
-        torch.tensor(src_data["image_b3hw"][0].cuda())
+        torch.tensor(src_data["image_b3hw"][0].to(device))
     )
     num_src_cameras = src_data["world_T_cam_b44"][0].shape[0]
     for src_idx in range(num_src_cameras):
@@ -58,7 +67,7 @@ def log_camera(
             image_from_camera=K_33,
             width=PRED_FORMAT_SIZE[1],
             height=PRED_FORMAT_SIZE[0],
-        )
+        ),
     )
 
     rr.log(entity_path, rr.Transform3D(translation=trans, mat3x3=Rot))
@@ -106,11 +115,11 @@ def log_rerun(
     our_depth_hw3 = our_depth_3hw.permute(1, 2, 0)
     rr.log(
         f"{curr_entity_path}/image/depth",
-        rr.DepthImage(our_depth_hw3.numpy(force=True))
+        rr.DepthImage(our_depth_hw3.numpy(force=True)),
     )
 
     # Normal logging
-    invK_s0_b44 = cur_data["invK_s0_b44"].cuda()
+    invK_s0_b44 = cur_data["invK_s0_b44"].to(device)
     normals_b3hw = compute_normals(depth_pred, invK_s0_b44)
     our_normals_3hw = 0.5 * (1 + normals_b3hw).squeeze(0)
     pil_normal = Image.fromarray(
@@ -150,15 +159,17 @@ def log_rerun(
         f"{entity_path}/mesh",
         rr.Mesh3D(
             vertex_positions=scene_trimesh_mesh.vertices,
-            indices=scene_trimesh_mesh.faces,
+            triangle_indices=scene_trimesh_mesh.faces,
             vertex_colors=scene_trimesh_mesh.visual.vertex_colors,
-        )
+        ),
     )
 
 
 def main(opts):
     print("Setting batch size to 1.")
     opts.batch_size = 1
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # get dataset
     dataset_class, scans = get_dataset(
@@ -173,7 +184,7 @@ def main(opts):
     ):
         model.cost_volume = model.cost_volume.to_fast()
 
-    model = model.cuda().eval()
+    model = model.to(device).eval()
 
     # path where results for this model, dataset, and tuple type are.
     results_path = os.path.join(
@@ -275,8 +286,12 @@ def main(opts):
                 else:
                     frame_id = f"{str(batch_ind):6d}"
 
-                cur_data = to_gpu(cur_data, key_ignores=["frame_id_string"])
-                src_data = to_gpu(src_data, key_ignores=["frame_id_string"])
+                cur_data = to_device(
+                    cur_data, key_ignores=["frame_id_string"], device=device
+                )
+                src_data = to_device(
+                    src_data, key_ignores=["frame_id_string"], device=device
+                )
 
                 # To save time and compute , we should load meshes if they've
                 # all been computed and stored. We don't currently have a
@@ -358,7 +373,7 @@ def main(opts):
 
                     if opts.mask_pred_depth:
                         overall_mask_b1hw = (
-                            outputs["overall_mask_bhw"].cuda().unsqueeze(1).float()
+                            outputs["overall_mask_bhw"].to(device).unsqueeze(1).float()
                         )
                         overall_mask_b1hw = F.interpolate(
                             overall_mask_b1hw, size=(192, 256), mode="nearest"

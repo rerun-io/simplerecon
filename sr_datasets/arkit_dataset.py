@@ -4,7 +4,7 @@ import os
 
 import numpy as np
 import torch
-from datasets.generic_mvs_dataset import GenericMVSDataset
+from sr_datasets.generic_mvs_dataset import GenericMVSDataset
 from torchvision import transforms
 from tqdm import tqdm
 from utils.generic_utils import read_image_file

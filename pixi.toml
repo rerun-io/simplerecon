@@ -1,0 +1,76 @@
+[project]
+name = "simplerecon"
+version = "0.1.0"
+description = "Add a short description here"
+authors = ["Pablo Vela <pablovela5620@gmail.com>"]
+channels = ["nvidia", "pytorch", "conda-forge"]
+platforms = ["linux-64", "osx-arm64"]
+
+[system-requirements]
+macos = "11.0" # needed for some reason otherwise fails to resolve mediapipe package
+libc = "2.31"
+
+
+[tasks]
+download-hero-model = """
+        bash -c '[ ! -f \"weights/hero_model.ckpt\" ] && gdown 1hCuKZjEq-AghrYAmFxJs_4eeixIlP488 -O weights/'
+"""
+download-vdr-data = """
+      bash -c '[ ! -d \"data/vdr\" ] && (gdown 1x-auV7vGCMdu5yZUMPcoP83p77QOuasT -O data/ && unzip data/vdr.zip -d data/) || echo \"Dataset already downloaded.\"'
+"""
+download-data = {cmd="pwd", depends_on = ["download-hero-model", "download-vdr-data"]}
+
+[dependencies]
+python = "3.9.*"
+pytorch = "1.13.1.*"
+pytorch-lightning = "1.5.4.*"
+scipy = ">=1.11.4,<1.12"
+torchvision = "0.14.1.*"
+
+[pypi-dependencies]
+Pillow = ">=9.4.0,<9.5"
+antialiased-cnns = "*"
+efficientnet_pytorch = "*"
+einops = "*" # batching one liners
+gdown = ">=5.2.0"
+kornia = "==0.6.7" # gradients
+matplotlib = ">=3.8.2,<3.9"
+moviepy = "*"
+open3d = "*" # mesh fusion
+pip = "*"
+pyrender = "*"# rendering meshes
+scikit-image = "*"
+tensorboard = ">=2.15.1,<2.16"
+timm = "*" # efficent
+transforms3d = "*" # for NeuralRecon's arkit
+trimesh = "*" # mesh loading/storage, and mesh generation
+rerun-sdk = "==0.16.0"
+
+
+[target.linux-64.dependencies]
+pytorch-cuda = "11.7.*"
+
+[target.osx-arm64.tasks]
+# OMP_NUM_THREADS required to work on mac https://github.com/isl-org/Open3D/issues/6196
+vdr = """OMP_NUM_THREADS=1 python rerun_visualize_live_meshing.py \
+            --name HERO_MODEL \
+            --output_base_path OUTPUT_PATH \
+            --config_file configs/models/hero_model.yaml \
+            --load_weights_from_checkpoint weights/hero_model.ckpt \
+            --data_config_file configs/data/vdr_dense_rerun.yaml \
+            --num_workers 8 \
+            --run_fusion \
+            --depth_fuser open3d \
+            --fuse_color"""
+
+[target.linux-64.tasks]
+vdr = """CUDA_VISIBLE_DEVICES=0 python rerun_visualize_live_meshing.py \
+            --name HERO_MODEL \
+            --output_base_path OUTPUT_PATH \
+            --config_file configs/models/hero_model.yaml \
+            --load_weights_from_checkpoint weights/hero_model.ckpt \
+            --data_config_file configs/data/vdr_dense_rerun.yaml \
+            --num_workers 8 \
+            --run_fusion \
+            --depth_fuser open3d \
+            --fuse_color"""
